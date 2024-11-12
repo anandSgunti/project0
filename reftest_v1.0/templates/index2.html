@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Assistant</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>PDF Assistant</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" required>
+        <button type="submit">Upload PDF</button>
+    </form>
+
+    <form id="questionForm" style="display: none;">
+        <label for="question">Ask a question:</label>
+        <input type="text" id="question" name="question" required>
+        <button type="submit">Ask</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+        // Handle PDF upload
+        $('#uploadForm').on('submit', function(e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+
+            $.ajax({
+                url: '/upload_pdf',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#questionForm').show();  // Show the question form
+                    $('#response').text(response.message);  // Display message
+                },
+                error: function() {
+                    $('#response').text('Error processing the PDF.');
+                }
+            });
+        });
+
+        // Handle question asking
+        $('#questionForm').on('submit', function(e) {
+            e.preventDefault();
+            let formData = new FormData();
+            formData.append('question', $('#question').val());
+            formData.append('pdf_file', $('#pdf_file')[0].files[0]);  // Re-send the PDF file
+
+            $.ajax({
+                url: '/ask_question',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhrFields: {
+                    responseType: 'blob'  // To handle the binary PDF response
+                },
+                success: function(response, status, xhr) {
+                    // Handle PDF download
+                    const blob = new Blob([response], { type: 'application/pdf' });
+                    const link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = "highlighted_reference.pdf";
+                    link.click();
+                },
+                error: function() {
+                    $('#response').text('Error getting the answer or highlighting the PDF.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        .chat-container {
+            max-width: 900px;
+            margin: 30px auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        .chat-box {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message .content {
+            max-width: 60%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            line-height: 1.4;
+        }
+
+        .message.user .content {
+            background-color: #0078D4;
+            color: white;
+        }
+
+        .message.assistant .content {
+            background-color: #e1e1e1;
+            color: black;
+        }
+
+        .input-box {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-box input[type="file"],
+        .input-box input[type="text"] {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            font-size: 14px;
+        }
+
+        .input-box button {
+            padding: 10px 20px;
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 30px;
+        }
+
+        .chat-box::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background-color: #0078D4;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-box" id="chat-box">
+        <!-- Chat messages will be dynamically added here -->
+    </div>
+
+    <div class="input-box">
+        <input type="text" id="user_input" placeholder="Type a message...">
+        <input type="file" id="pdf_file" accept=".pdf">
+        <button id="send-btn">Send</button>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#send-btn').on('click', function (e) {
+            e.preventDefault();
+            
+            let userInput = $('#user_input').val();
+            let pdfFile = $('#pdf_file')[0].files[0];
+
+            let formData = new FormData();
+            formData.append('user_input', userInput);
+            if (pdfFile) {
+                formData.append('pdf_file', pdfFile);
+            }
+
+            // Add user message to the chat
+            if (userInput) {
+                appendMessage('user', userInput);
+                $('#user_input').val(''); // Clear input field
+            }
+
+            $.ajax({
+                url: '/get_response',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    // Append the chatbot response
+                    appendMessage('assistant', response.response);
+                }
+            });
+        });
+
+        function appendMessage(role, text) {
+            let messageHtml = `<div class="message ${role}">
+                <div class="content">${text}</div>
+            </div>`;
+            $('#chat-box').append(messageHtml);
+            $('#chat-box').scrollTop($('#chat-box')[0].scrollHeight);  // Scroll to the bottom
+        }
+    });
+</script>
+
+</body>
+</html>

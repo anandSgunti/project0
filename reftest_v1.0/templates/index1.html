@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 0</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #252423;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main container for PDF viewer */
+        #adobe-viewer {
+            width: 80%;
+            overflow-y: auto;
+        
+        }
+
+        /* PDF Viewer in full and reduced width */
+        .viewer-full-width {
+            width: 100%;
+        }
+
+        .viewer-reduced-width {
+            width: calc(100% - 25vw); /* Leave space for chatbot */
+        }
+
+        .chat-icon {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #464775;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 20;
+            transition: transform 0.3s ease;
+        }
+
+        .close-btn {
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #ccc;
+        }
+
+        /* Sidebar styles */
+        .sidebar-container {
+            width: 25vw;
+            height: 90%;
+            position: relative;
+            right: 20px;
+            background-color: #f7f8fc;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.4s ease;
+            overflow: hidden;
+            z-index: 10;
+            
+        }
+
+        .sidebar-container.show {
+            display: flex;
+            transform: translateY(0);
+        }
+
+        .sidebar-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-container::-webkit-scrollbar-thumb {
+            background-color: #cccccc;
+            border-radius: 10px;
+        }
+
+        /* Fixed header */
+        .header {
+            background-color: #464775;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        /* Chat container */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 15px 20px;
+            scrollbar-width: thin;
+            scrollbar-color: #d3d3d3 #f7f8fc;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: #d3d3d3;
+            border-radius: 10px;
+        }
+
+        /* Chat messages */
+        .chat-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+
+        .message .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #464775;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            margin-right: 10px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .message .message-content {
+            padding: 12px 16px;
+            border-radius: 10px;
+            max-width: calc(70% - 42px);
+            word-wrap: break-word;
+            background-color: #f3f2f1;
+            font-size: 14px;
+            line-height: 1.4;
+            transition: background-color 0.3s ease;
+        }
+
+        .user.message {
+            flex-direction: row-reverse;
+        }
+
+        .user.message .avatar {
+            margin-right: 0;
+            margin-left: 10px;
+            background-color: #6264a7;
+        }
+
+        .user.message .message-content {
+            background-color: #e5e5f1;
+        }
+
+        /* Highlight button */
+        .highlight-btn {
+            display: none;
+            background-color: #464775;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .assistant.message:hover .highlight-btn {
+            display: inline-block;
+        }
+
+        .highlight-btn:hover {
+            background-color: #6264a7;
+        }
+
+        .highlighted {
+            background-color: #fffaac;
+        }
+
+        /* Input area */
+        .input-area {
+            display: flex;
+            padding: 15px;
+            background-color: #f1f1f4;
+            border-top: 1px solid #e1dfdd;
+            gap: 10px;
+        }
+
+        .input-area input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #8b8cc7;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-area input[type="text"]:focus {
+            border-color: #6264a7;
+        }
+
+        .input-area .upload-btn,
+        .input-area .ask-btn {
+            background-color: #464775;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .input-area .upload-btn:hover,
+        .input-area .ask-btn:hover {
+            background-color: #6264a7;
+        }
+
+        .input-area input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="adobe-viewer">
+        <div style="padding: 20px;">
+            <label for="file-picker">Choose a PDF File:</label>
+            <input type="file" id="file-picker" accept="application/pdf" style="display: none;">
+            <button id="upload-btn" class="upload-btn"><i class="fas fa-file-upload"></i> Upload PDF</button>
+        </div>
+        <div id="adobe-dc-view"></div>
+    </div>
+    <!-- Floating Chat Icon -->
+    <div class="chat-icon" id="chat-icon">
+        <i class="fas fa-comments"></i>
+    </div>
+
+    <!-- Chatbot Pop-up Sidebar -->
+    
+    <div class="sidebar-container" , id="sidebar">
+        <header class="header">
+           <h1><i class="fas fa-file-pdf"></i> Reference Chatbot</h1>
+           <span class="close-btn" id="close-btn">&times;</span>
+       </header>
+       
+       <div class="chat-container">
+           <div id="chat-box" class="chat-box"></div>
+       </div>
+       
+       <div class="input-area">
+           <button id="upload-btn" class="upload-btn"><i class="fas fa-file-upload"></i></button>
+           <input type="file" id="pdf_file" name="pdf_file" accept=".pdf" style="display:none;">
+           <input type="text" id="question" name="question" placeholder="Type your question here..." disabled>
+           <button id="ask-btn" class="ask-btn" disabled><i class="fas fa-paper-plane"></i></button>
+       </div>
+   </div>
+
+   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+   <script>
+       let textChunks = '';
+
+       const chatIcon = document.getElementById("chat-icon");
+       const sidebar = document.getElementById("sidebar");
+       const closeBtn = document.getElementById("close-btn");
+       const adobeViewer = document.getElementById("adobe-viewer");
+
+       // Show/hide chatbot and adjust viewer width
+       chatIcon.addEventListener("click", () => {
+           sidebar.classList.toggle("show");
+           adobeViewer.classList.toggle("viewer-reduced-width");
+           adobeViewer.classList.toggle("viewer-full-width");
+       });
+
+       closeBtn.addEventListener("click", () => {
+           sidebar.classList.remove("show");
+           adobeViewer.classList.remove("viewer-reduced-width");
+           adobeViewer.classList.add("viewer-full-width");
+       });
+
+       document.getElementById("upload-btn").addEventListener("click", () => {
+            document.getElementById("file-picker").click();
+        });
+
+        document.getElementById("file-picker").addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file && file.type === "application/pdf") {
+                loadPDFInAdobeViewer(file);
+                uploadPDF(file);
+            }
+        });
+
+        function loadPDFInAdobeViewer(file) {
+            const reader = new FileReader();
+            reader.onloadend = function (e) {
+                const adobeDCView = new AdobeDC.View({
+                    clientId: "edf9c606d17a43cf98d169ff057c87d5",
+                    divId: "adobe-dc-view",
+                });
+                adobeDCView.previewFile({
+                    content: { promise: Promise.resolve(e.target.result) },
+                    metaData: { fileName: file.name }
+                }, {});
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+       function appendMessage(sender, message) {
+           const chatBox = $('#chat-box');
+           const avatar = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+           const highlightButton = sender === 'assistant' ? '<button class="highlight-btn">Navigate</button>' : '';
+           const messageDiv = `
+               <div class="${sender} message">
+                   <div class="avatar">${avatar}</div>
+                   <div class="message-content">${message}</div>
+                   ${highlightButton}
+               </div>`;
+           chatBox.append(messageDiv);
+           chatBox.scrollTop(chatBox[0].scrollHeight);
+
+           if (sender === 'assistant') {
+               $('.highlight-btn').last().on('click', function() {
+                   $(this).siblings('.message-content').toggleClass('highlighted');
+               });
+           }
+       }
+
+
+       function uploadPDF(file) {
+           const formData = new FormData();
+           formData.append('pdf_file', file);
+
+           $.ajax({
+               url:'/upload_pdf',
+               type:'POST',
+               data : formData,
+               contentType:false,
+               processData:false,
+               success:function(response) {
+                   textChunks = response.text_chunks;
+                   appendMessage('assistant', 'PDF processed and ready for questions.');
+                   $('#question').prop('disabled', false);
+                   $('#ask-btn').prop('disabled', false);
+               },
+               error:function() {
+                   appendMessage('assistant', 'Error uploading the PDF.');
+               }
+           });
+       }
+
+       $('#ask-btn').on('click', function() {
+           const question = $('#question').val();
+           if (!question) return;
+
+           appendMessage('user', question);
+           askQuestion(question);
+           $('#question').val('');
+       });
+
+       function askQuestion(question) {
+           $.ajax({
+               url:'/ask_question',
+               type:'POST',
+               contentType:'application/json',
+               data : JSON.stringify({ text_chunks:textChunks, question}),
+               success:function(response) {
+                   appendMessage('assistant', response.answer);
+               },
+               error:function() {
+                   appendMessage('assistant', 'Error getting the answer.');
+               }
+          });
+      }
+
+      $('#question').on('keypress', function(e) {
+          if (e.which ===13 && !e.shiftKey) {
+              e.preventDefault();
+              $('#ask-btn').click();
+          }
+      });
+   </script>
+</body>
+</html>
