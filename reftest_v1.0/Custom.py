@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-openai.api_key = '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'
+openai.api_key = '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'
 
 app = Flask(__name__)
 
